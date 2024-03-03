@@ -5,7 +5,7 @@
 
 # nonebot-plugin-chatglm-plus
 </div>
-_✨ 人性化的ChatGLM插件，使用智谱API✨_
+_✨ 人性化的ChatGLM插件，使用智谱API✨_<br>
 
 
 <a href="./LICENSE">
