@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-chatglm-plus"
-version = "0.1.0"
+version = "0.1.1"
 description = "人性化的ChatGLM插件，使用智谱API，支持上下文"
 authors = ["【夜风】NightWind <2125714976@qq.com>"]
 license = "GPL3"
@@ -21,6 +21,7 @@ nonebot2 = ">=2.0.0rc1"
 httpx = ">=0.22.0"
 ujson = ">=5.0.0"
 nonebot-plugin-session = ">=0.2.3"
+PyJWT = ">=2.3.0"
 
 [build-system]
 requires = ["poetry-core"]
