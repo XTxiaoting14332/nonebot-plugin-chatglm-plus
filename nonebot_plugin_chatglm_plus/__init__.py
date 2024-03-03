@@ -1,7 +1,8 @@
-from nonebot import on_command, logger, get_driver, get_plugin_config
+from nonebot import on_command, logger, require, get_plugin_config
 from nonebot.plugin import PluginMetadata
 from nonebot.params import CommandArg
 from .config import Config
+require("nonebot_plugin_session")
 from nonebot_plugin_session import SessionId, SessionIdType
 from pathlib import Path
 from nonebot.adapters import Message
