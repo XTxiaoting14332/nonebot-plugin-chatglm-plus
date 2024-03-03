@@ -1,11 +1,7 @@
 <div align="center">
   <a href="https://nonebot.dev/store/plugins/"><img src="https://camo.githubusercontent.com/32db41bc55fa37e0d0085e4fd70e4e74fd34307f6bb4ebdad235bd1b0c8f4126/68747470733a2f2f6e6f6e65626f742e6465762f6c6f676f2e706e67" width="180" height="180" alt="NoneBotPluginLogo"></a>
   <br>
-  <p><img src="https://github.com/A-kirami/nonebot-plugin-template/blob/resources/NoneBotPlugin.svg" width="240" alt="NoneBotPluginText"></p>
-</div>
-
 <div align="center">
-
 # nonebot-plugin-chatglm-plus
 
 _✨ 人性化的ChatGLM插件，使用智谱API✨_
