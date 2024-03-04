@@ -3,6 +3,7 @@ from nonebot.plugin import PluginMetadata
 from nonebot.params import CommandArg
 from .config import Config
 require("nonebot_plugin_session")
+require("nonebot_plugin_localstore")
 from nonebot_plugin_session import SessionId, SessionIdType
 from pathlib import Path
 from nonebot.adapters import Message
@@ -10,6 +11,7 @@ import json,os
 import jwt
 from datetime import datetime, timedelta
 import time
+import nonebot_plugin_localstore as store
 import httpx
 __plugin_meta__ = PluginMetadata(
     name="人性化的ChatGLM",
@@ -26,7 +28,8 @@ __plugin_meta__ = PluginMetadata(
 
 
 #初始化插件
-log_dir = Path("data/chatglm-history").absolute()
+history_dir = store.get_data_dir("nonebot_plugin_chatglm_plus") 
+log_dir = Path(f"{history_dir}/chatglm-history").absolute()
 log_dir.mkdir(parents=True, exist_ok=True)
 config = get_plugin_config(Config)
 
@@ -47,26 +50,26 @@ prompt = prompt.replace('"','\\"')
 #聊天记录实现
 #用户输入
 def user_in(id, text):
-    if os.path.exists(f"data/chatglm-history/{id}.json"):
-        with open(f'data/chatglm-history/{id}.json', 'a') as file:
+    if os.path.exists(f"{log_dir}/{id}.json"):
+        with open(f'{log_dir}/{id}.json', 'a') as file:
             file.write(',\n{"role": "user", "content": "' + text + '"}')
     else:
-        with open(f'data/chatglm-history/{id}.json', 'w') as file:
+        with open(f'{log_dir}/{id}.json', 'w') as file:
             file.write('{"role": "user", "content": "' + text + '"}')        
 
 #AI输出
 def ai_out(id, text):
-    with open(f'data/chatglm-history/{id}.json', 'a') as file:
+    with open(f'{log_dir}/{id}.json', 'a') as file:
         file.write(',\n{"role": "assistant", "content": "' + text + '"}')
 
 
 #用户识别图片（仅GLM-4V可用）
 def user_img(id,url,text):
-    if os.path.exists(f"data/chatglm-history/{id}.json"):
-        with open(f'data/chatglm-history/{id}.json', 'a') as file:
+    if os.path.exists(f"{log_dir}/{id}.json"):
+        with open(f'{log_dir}/{id}.json', 'a') as file:
             file.write(',\n{"role": "user","content": [{"type": "text","text": "'+text+'"},{"type": "image_url","image_url": {"url" : "'+url+'"} }]}')
     else:
-        with open(f'data/chatglm-history/{id}.json', 'w') as file:
+        with open(f'{log_dir}/{id}.json', 'w') as file:
             file.write(',\n{"role": "user","content": [{"type": "text","text": "'+text+'"},{"type": "image_url","image_url": {"url" : "'+url+'"} }]}')
 
 
@@ -162,7 +165,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
         user_in(id,text_r)
         #读取聊天记录
         if len(api_key) != 0:
-            with open(f'data/chatglm-history/{id}.json', 'r') as file:
+            with open(f'{log_dir}/{id}.json', 'r') as file:
                 history = file.read()
             history = str(history)
             if rg == False:
@@ -212,7 +215,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = Comm
             user_img(id,url,text_r)
             #读取聊天记录
             if len(api_key) != 0:
-                with open(f'data/chatglm-history/{id}.json', 'r') as file:
+                with open(f'{log_dir}/{id}.json', 'r') as file:
                     history = file.read()
                 history = str(history)
                 if rg == False:
@@ -253,7 +256,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = Comm
 async def _handle(gid: str = SessionId(SessionIdType.GROUP)):
     id = gid
     try:
-        os.remove(f"data/chatglm-history/{id}.json")
+        os.remove(f"{log_dir}/{id}.json")
         await reset.finish("已清除聊天记录")
     except FileNotFoundError:
         await reset.finish("当前还没有会话哦！")
