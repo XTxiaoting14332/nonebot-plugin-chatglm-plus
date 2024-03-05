@@ -38,8 +38,10 @@ _✨ 人性化的ChatGLM插件，使用智谱API✨_<br>
 ``Satori``<br>
 ``DoDo``<br>
 
-
-
+## 🥵 环境要求
+Python >=3.8<br>
+Nonebot >=2.2.0<br>
+<br>
 ## 💿 安装
 
 <details open>
