@@ -12,7 +12,9 @@ import jwt
 from datetime import datetime, timedelta
 import time
 import nonebot_plugin_localstore as store
+from nonebot.plugin import inherit_supported_adapters
 import httpx
+
 __plugin_meta__ = PluginMetadata(
     name="人性化的ChatGLM",
     description="人性化的ChatGLM插件，支持预设和上下文",
@@ -20,7 +22,7 @@ __plugin_meta__ = PluginMetadata(
     type="application",
     homepage="https://github.com/XTxiaoting14332/nonebot-plugin-chatglm-plus",
     config=Config,
-    supported_adapters={"~qq","~satori","~dodo","~kaiheila","~telegram","~discord","~onebot.v12","~console","~red","~feishu","~onebot.v11"},
+    supported_adapters=inherit_supported_adapters("nonebot_plugin_session"),
 
 )
 
@@ -95,33 +97,6 @@ def generate_token(apikey: str):
     )
 
 
-#请求AI
-def req_glm(auth_token,usr_message):
-    headers = {
-        "Authorization": f"Bearer {auth_token}"
-    }
-    if max_token == 0:
-        data = {
-            "model": config.glm_model,
-            "temperature": config.glm_temperature,
-            "messages": usr_message
-        }
-    else:
-        data = {
-            "model": config.glm_model,
-            "max_tokens": max_token,
-            "temperature": config.glm_temperature,
-            "messages": usr_message
-        }
-    timeout = httpx.Timeout(connect=10, read=config.glm_timeout, write=None, pool=None)
-    res = httpx.post(base_url, headers=headers, json=data, timeout=timeout)
-    res = res.json()
-    try:
-        res_raw = res['choices'][0]['message']['content']
-    except Exception as e:
-        res_raw = res
-    return res_raw
-
 
 if len(api_key) == 0:
     logger.error("[ChatGLM]未正确配置API-Key！！！")
@@ -186,7 +161,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
                 history = json.loads(history)
                 auth = generate_token(api_key)
                 try:
-                    res = str(req_glm(auth,history))
+                    res = str(await req_glm(auth,history))
                     res_raw = res.replace("\n","\\n")
                     ai_out(id,res_raw)
                     await ai.finish(res)
@@ -235,7 +210,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = Comm
                 history = json.loads(history)
                 auth = generate_token(api_key)
                 try:
-                    res = str(req_glm(auth,history))
+                    res = str(await req_glm(auth,history))
                     res_raw = res.replace("\n","\\n")
                     ai_out(id,res_raw)
                     await ai.finish(res)
@@ -264,3 +239,30 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP)):
 
     
 
+#异步请求AI
+async def req_glm(auth_token, usr_message):
+    headers = {
+        "Authorization": f"Bearer {auth_token}"
+    }
+    if max_token == 0:
+        data = {
+            "model": config.glm_model,
+            "temperature": config.glm_temperature,
+            "messages": usr_message
+        }
+    else:
+        data = {
+            "model": config.glm_model,
+            "max_tokens": max_token,
+            "temperature": config.glm_temperature,
+            "messages": usr_message
+        }
+    
+    async with httpx.AsyncClient(timeout=httpx.Timeout(connect=10, read=config.glm_timeout, write=20, pool=30)) as client:
+        res = await client.post(base_url, headers=headers, json=data)
+        res = res.json()
+    try:
+        res_raw = res['choices'][0]['message']['content']
+    except Exception as e:
+        res_raw = res
+    return res_raw
