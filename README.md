@@ -78,7 +78,7 @@ Nonebot >=2.2.0<br>
 
 ```
 #智谱清言的API Key
-glm_api = 
+glm_api_key = 
 ```
 
 ### 非必填项
