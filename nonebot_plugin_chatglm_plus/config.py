@@ -28,3 +28,6 @@ class Config(BaseModel):
 
     #ai昵称，默认为空（如果prompt或者nickname有一个为空则无法启用预设）
     glm_nickname: str = ""
+
+    #是否启用ai画图功能，默认为False
+    glm_draw: bool = False

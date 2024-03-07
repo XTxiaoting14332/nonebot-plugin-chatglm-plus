@@ -4,6 +4,7 @@ from nonebot.params import CommandArg
 from .config import Config
 require("nonebot_plugin_session")
 require("nonebot_plugin_localstore")
+require("nonebot_plugin_saa")
 from nonebot_plugin_session import SessionId, SessionIdType
 from pathlib import Path
 from nonebot.adapters import Message
@@ -14,6 +15,9 @@ import time
 import nonebot_plugin_localstore as store
 from nonebot.plugin import inherit_supported_adapters
 import httpx
+from nonebot_plugin_saa import Image
+
+
 
 __plugin_meta__ = PluginMetadata(
     name="人性化的ChatGLM",
@@ -43,6 +47,7 @@ max_token = config.glm_max_tokens
 base_url = config.glm_api_addr
 prompt = config.glm_prompt
 nickname = config.glm_nickname
+draw_on = config.glm_draw
 #json转义防止爆炸（）
 prompt = prompt.replace('\n','\\n')
 prompt = prompt.replace('\t','\\t')
@@ -117,6 +122,7 @@ ai = on_command(f"{cmd}",aliases={})
 reset = on_command(f"{cmd} !reset",aliases={})
 ai_img = on_command(f'{cmd} !img',aliases={})
 ai_help = on_command(f"{cmd} !help",aliases={})
+ai_draw = on_command(f'{cmd} !draw',aliases={})
 
 
 @ai_help.handle()
@@ -226,6 +232,22 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = Comm
         await ai_img.finish(f"目前使用的模型为{config.glm_model}，不支持图片识别，请使用glm-4v模型")
 
     
+#AI画图
+@ai_draw.handle()
+async def _handle(arg: Message = CommandArg()):
+    arg = str(arg)
+    if draw_on == True:
+        try:
+            auth = generate_token(api_key)
+            await ai_draw.send("正在画图，请稍等")
+            img_url = str(await req_draw(auth,arg))
+            await Image(img_url).finish()
+        except httpx.HTTPError as e:
+            await ai_draw.finish(f'貌似出错了~\n{e}')
+    else:
+        await ai_draw.finish("未开启AI画图功能")
+
+
 
 @reset.handle()
 async def _handle(gid: str = SessionId(SessionIdType.GROUP)):
@@ -263,6 +285,25 @@ async def req_glm(auth_token, usr_message):
         res = res.json()
     try:
         res_raw = res['choices'][0]['message']['content']
+    except Exception as e:
+        res_raw = res
+    return res_raw
+
+#异步请求AI画图
+async def req_draw(auth_token,arg):
+    draw_url = "https://open.bigmodel.cn/api/paas/v4/images/generations"
+    headers = {
+        "Authorization": f"Bearer {auth_token}"
+    }
+    data = {
+    "model": "cogview-3",
+    "prompt": arg
+    }
+    async with httpx.AsyncClient(timeout=httpx.Timeout(connect=10, read=config.glm_timeout, write=20, pool=30)) as client:
+        res = await client.post(draw_url, headers=headers, json=data)
+        res = res.json()
+    try:
+        res_raw = res['data'][0]['url']
     except Exception as e:
         res_raw = res
     return res_raw

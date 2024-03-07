@@ -108,6 +108,9 @@ glm_prompt = ""
 
 #ai昵称，默认为空（如果prompt或者nickname有一个为空则无法启用预设）
 glm_nickname = ""
+
+#是否启用ai画图功能，默认为False
+glm_draw = False
 ```
 
 
@@ -120,4 +123,5 @@ glm_nickname = ""
 | glm | 所有人 | 否 | ~ | 向ai发送消息 |
 | glm !reset| 所有人 | 否 | ~ | 清除当前会话的聊天记录 |
 | glm !img 图片url 文本消息 | 所有人 | 否 | ~ | 向ai发送带有图片的消息(仅glm-4v模型可用) |
+| glm !draw 图片要求 | 所有人 | 否 | ~ | AI画图 |
 | glm !help| 所有人 | 否 | ~ | 获取插件帮助 |
