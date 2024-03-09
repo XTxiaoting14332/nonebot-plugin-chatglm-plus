@@ -16,7 +16,7 @@ import nonebot_plugin_localstore as store
 from nonebot.plugin import inherit_supported_adapters
 import httpx
 from nonebot_plugin_saa import Image
-
+from io import BytesIO
 
 
 __plugin_meta__ = PluginMetadata(
@@ -131,8 +131,9 @@ async def _handle():
     nonebot-plugin-chatglm-plus
     帮助信息：
     /{cmd} 内容 --向ai发送消息
-    /{cmd} !reser   --清除当前会话的聊天记录
+    /{cmd} !reset   --清除当前会话的聊天记录
     /{cmd} !img 图片直链url 文字消息  --向ai发送带有图片的消息(仅glm-4v模型可用)
+    /{cmd} !draw 图片描述   --AI画图
     """
     await ai_help.finish(msg)
 
