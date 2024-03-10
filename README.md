@@ -90,6 +90,10 @@ glm_cmd = glm
 #最大输出的token,0为不限，默认为0
 glm_max_tokens = 0
 
+#聊天记录储存路径，默认为nonebot_plugin_store指定的目录
+glm_history_path = ""
+
+
 #使用的模型，默认为glm-3-turbo
 #目前该插件支持的模型有：glm-4、glm-4v、glm-3-turbo
 glm_model = glm-3-turbo

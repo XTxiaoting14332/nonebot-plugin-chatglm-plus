@@ -34,11 +34,6 @@ __plugin_meta__ = PluginMetadata(
 
 
 #初始化插件
-history_dir = store.get_data_dir("nonebot_plugin_chatglm_plus") 
-log_dir = Path(f"{history_dir}/chatglm-history").absolute()
-log_dir.mkdir(parents=True, exist_ok=True)
-config = get_plugin_config(Config)
-
 #读取配置
 config = get_plugin_config(Config)
 cmd = config.glm_cmd
@@ -48,6 +43,22 @@ base_url = config.glm_api_addr
 prompt = config.glm_prompt
 nickname = config.glm_nickname
 draw_on = config.glm_draw
+hisdir = config.glm_history_path
+#聊天记录文件夹
+if len(hisdir) == 0:
+    history_dir = store.get_data_dir("nonebot_plugin_chatglm_plus")
+    log_dir = Path(f"{history_dir}/chatglm-history").absolute()
+else:
+    if os.path.exists(hisdir):
+        log_dir = hisdir
+    else:
+        logger.warning("找不到设置的路径，将使用默认路径")
+        history_dir = store.get_data_dir("nonebot_plugin_chatglm_plus")
+        log_dir = Path(f"{history_dir}/chatglm-history").absolute()
+
+log_dir.mkdir(parents=True, exist_ok=True)
+
+
 #json转义防止爆炸（）
 prompt = prompt.replace('\n','\\n')
 prompt = prompt.replace('\t','\\t')

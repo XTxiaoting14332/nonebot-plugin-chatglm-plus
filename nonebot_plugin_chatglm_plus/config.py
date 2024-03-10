@@ -7,6 +7,9 @@ class Config(BaseModel):
     #你的智谱apikey
     glm_api_key: str = ""
 
+    #聊天记录储存路径，默认为nonebot_plugin_store指定的目录
+    glm_history_path: str = ""
+
     #最大输出的token,0为不限，默认为0
     glm_max_tokens: int = 0
 
