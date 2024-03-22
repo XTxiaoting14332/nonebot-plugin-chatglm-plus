@@ -30,9 +30,6 @@ __plugin_meta__ = PluginMetadata(
 
 )
 
-
-
-
 #初始化插件
 #读取配置
 config = get_plugin_config(Config)
@@ -44,6 +41,7 @@ prompt = config.glm_prompt
 nickname = config.glm_nickname
 draw_on = config.glm_draw
 hisdir = config.glm_history_path
+hard_prompt = config.glm_hard_prompt
 #聊天记录文件夹
 if len(hisdir) == 0:
     history_dir = store.get_data_dir("nonebot_plugin_chatglm_plus")
@@ -73,7 +71,7 @@ def user_in(id, text):
             file.write(',\n{"role": "user", "content": "' + text + '"}')
     else:
         with open(f'{log_dir}/{id}.json', 'w') as file:
-            file.write('{"role": "user", "content": "' + text + '"}')        
+            file.write('{"role": "user", "content": "' + text + '"}')
 
 #AI输出
 def ai_out(id, text):
@@ -155,26 +153,43 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
         id = gid
         #对用户输入进行转义防止炸json
         text_r = text.replace("\n","\\n")
-        user_in(id,text_r)
         #读取聊天记录
         if len(api_key) != 0:
-            with open(f'{log_dir}/{id}.json', 'r') as file:
-                history = file.read()
-            history = str(history)
             if rg == False:
+                with open(f'{log_dir}/{id}.json', 'r') as file:
+                    history = file.read()
+                history = str(history)
+                user_in(id,text_r)
                 history = f"""
                 [
                 {history}
                 ]
                 """
             else:
-                s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
-                history = f"""
-                [
-                {s_prompt}               
-                {history}
-                ]
-                """
+                if hard_prompt == False:
+                    user_in(id,text_r)
+                    with open(f'{log_dir}/{id}.json', 'r') as file:
+                        history = file.read()
+                    history = str(history)
+                    s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
+                    history = f"""
+                    [
+                    {s_prompt}               
+                    {history}
+                    ]
+                    """
+                #硬预设启用
+                else:
+                    text_r = text_r + f'({prompt}\\n接下来，请你进入\\"{nickname}\\"这个角色与大家对话。请记住你是{nickname}，你不能说你是程序或者AI,你是有血有肉、有真实情感的)'
+                    user_in(id,text_r)
+                    with open(f'{log_dir}/{id}.json', 'r') as file:
+                        history = file.read()
+                    history = str(history)
+                    history = f"""
+                    [
+                    {history}
+                    ]
+                    """                
             try:
                 history = json.loads(history)
                 auth = generate_token(api_key)
@@ -205,26 +220,42 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = Comm
             url = argl[0]
             text = argl[1]
             text_r = text.replace("\n","\\n")
-            user_img(id,url,text_r)
             #读取聊天记录
             if len(api_key) != 0:
-                with open(f'{log_dir}/{id}.json', 'r') as file:
-                    history = file.read()
-                history = str(history)
                 if rg == False:
+                    user_img(id,url,text_r)
+                    with open(f'{log_dir}/{id}.json', 'r') as file:
+                        history = file.read()
+                    history = str(history)
                     history = f"""
                     [
                     {history}
                     ]
                     """
                 else:
-                    s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
-                    history = f"""
-                    [
-                    {s_prompt}
-                    {history}
-                    ]
-                    """                    
+                    if hard_prompt == False:
+                        user_img(id,url,text_r)
+                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                            history = file.read()
+                        history = str(history)
+                        s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
+                        history = f"""
+                        [
+                        {s_prompt}
+                        {history}
+                        ]
+                        """
+                    else:
+                        text_r = text_r + f'({prompt}\\n接下来，请你进入\\"{nickname}\\"这个角色与大家对话。请记住你是{nickname}，你不能说你是程序或者AI,你是有血有肉、有真实情感的)'
+                        user_img(id,url,text_r)
+                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                            history = file.read()
+                        history = str(history)
+                        history = f"""
+                        [
+                        {history}
+                        ]
+                        """                                            
                 history = json.loads(history)
                 auth = generate_token(api_key)
                 try:

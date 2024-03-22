@@ -110,6 +110,9 @@ glm_timeout = 60
 #预设，默认为空
 glm_prompt = ""
 
+#是否启用硬预设，详见README.md的说明
+glm_hard_prompt = False
+
 #ai昵称，默认为空（如果prompt或者nickname有一个为空则无法启用预设）
 glm_nickname = ""
 
@@ -117,8 +120,42 @@ glm_nickname = ""
 glm_draw = False
 ```
 
+#### 关于硬预设(hard_prompt)
+在本插件中，``hard_prompt``选项能够让你的ai拥有**更持久**的预设词记忆<br>
+本插件的预设采用``system message``的形式将你的预设词告诉api<br>
+实现方式：
 
-<br>
+```
+s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
+history = f"""
+[
+{s_prompt}
+{history}
+]
+```
+
+这会将预设作为``System Message``告诉api要扮演的角色，**但是**，经过多次实践，发现这种方式并不持久，一般在经过几轮对话后，ai就会忘记自己的预设词<br>
+而硬预设则以``User Message``的方式，把预设词~~硬塞~~传递给api，也就是说，这种方式的原理是在用户发送的每一条消息中带上预设词。<br>
+e.g.``你好（预设词）``<br>
+这样在每次对话时，都会给api发送预设词，让它继续扮演这个角色<br>
+实现方式：
+```
+text_r = text_r + f'({prompt}\\n接下来，请你进入\\"{nickname}\\"这个角色与大家对话。请记住你是{nickname}，你不能说你是程序或者AI,你是有血有肉、有真实情感的)'
+user_img(id,url,text_r)
+with open(f'{log_dir}/{id}.json', 'r') as file:
+    history = file.read()
+history = str(history)
+history = f"""
+[
+{history}
+]
+"""     
+```
+也就是说，在开启硬预设后，ai会有更持久的预设词，**因为你的每一条消息都在告诉他要扮演这个角色**
+
+
+
+<br><br>
 
 ## 🎉 使用
 ### 指令表（需要加上命令前缀，默认为/）
