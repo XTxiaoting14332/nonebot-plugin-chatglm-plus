@@ -75,8 +75,12 @@ def user_in(id, text):
 
 #AI输出
 def ai_out(id, text):
-    with open(f'{log_dir}/{id}.json', 'a') as file:
-        file.write(',\n{"role": "assistant", "content": "' + text + '"}')
+    if os.path.exists(f"{log_dir}/{id}.json"):
+        with open(f'{log_dir}/{id}.json', 'a') as file:
+            file.write(',\n{"role": "assistant", "content": "' + text + '"}')
+    else:
+        with open(f'{log_dir}/{id}.json', 'w') as file:
+            file.write('{"role": "assistant", "content": "' + text + '"}')
 
 
 #用户识别图片（仅GLM-4V可用）
@@ -119,6 +123,8 @@ if len(api_key) == 0:
 
 if len(prompt) != 0 and len(nickname) != 0:
     logger.info("[ChatGLM]加载预设："+nickname)
+    if hard_prompt == True:
+        logger.info("硬预设启用")
     rg = True
 else:
     logger.info("[ChatGLM]预设未启用")
@@ -150,16 +156,16 @@ async def _handle():
 async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = CommandArg()):
     if len(text) != 0:
         text = str(text)
-        id = gid
+        id = gid.replace(" ","_")
         #对用户输入进行转义防止炸json
         text_r = text.replace("\n","\\n")
         #读取聊天记录
         if len(api_key) != 0:
             if rg == False:
+                user_in(id,text_r)
                 with open(f'{log_dir}/{id}.json', 'r') as file:
                     history = file.read()
                 history = str(history)
-                user_in(id,text_r)
                 history = f"""
                 [
                 {history}
@@ -174,7 +180,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
                     s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
                     history = f"""
                     [
-                    {s_prompt}               
+                    {s_prompt}
                     {history}
                     ]
                     """
@@ -189,7 +195,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
                     [
                     {history}
                     ]
-                    """                
+                    """
             try:
                 history = json.loads(history)
                 auth = generate_token(api_key)
@@ -203,16 +209,16 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
                     await ai.finish(res)
             except json.JSONDecodeError:
                 await ai.finish(f"聊天记录似乎炸了？\n请使用/{cmd} !reset 来重置")
-                
+
         else:
             await ai.finish("API-Key未正确配置！")
-            
+
     else:
         await ai.finish(f"消息不能为空\n可使用/{cmd} !help 命令查看帮助")
 
 @ai_img.handle()
 async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = CommandArg()):
-    id = gid   
+    id = gid.replace(" ","_")
     args = str(args)
     argl = args.split()
     if config.glm_model == "glm-4v":
@@ -255,7 +261,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = Comm
                         [
                         {history}
                         ]
-                        """                                            
+                        """
                 history = json.loads(history)
                 auth = generate_token(api_key)
                 try:
@@ -274,7 +280,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = Comm
     else:
         await ai_img.finish(f"目前使用的模型为{config.glm_model}，不支持图片识别，请使用glm-4v模型")
 
-    
+
 #AI画图
 @ai_draw.handle()
 async def _handle(arg: Message = CommandArg()):
@@ -294,15 +300,15 @@ async def _handle(arg: Message = CommandArg()):
 
 @reset.handle()
 async def _handle(gid: str = SessionId(SessionIdType.GROUP)):
-    id = gid
+    id = gid.replace(" ","_")
     try:
-        os.remove(f"{log_dir}/{id}.json")
+        os.remove(f"{log_dir}/{id.replace(' ','.')}.json")
         await reset.finish("已清除聊天记录")
     except FileNotFoundError:
         await reset.finish("当前还没有会话哦！")
 
 
-    
+
 
 #异步请求AI
 async def req_glm(auth_token, usr_message):
@@ -322,7 +328,7 @@ async def req_glm(auth_token, usr_message):
             "temperature": config.glm_temperature,
             "messages": usr_message
         }
-    
+
     async with httpx.AsyncClient(timeout=httpx.Timeout(connect=10, read=config.glm_timeout, write=20, pool=30)) as client:
         res = await client.post(base_url, headers=headers, json=data)
         res = res.json()

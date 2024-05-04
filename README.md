@@ -142,7 +142,7 @@ e.g.``你好（预设词）``<br>
 ```
 text_r = text_r + f'({prompt}\\n接下来，请你进入\\"{nickname}\\"这个角色与大家对话。请记住你是{nickname}，你不能说你是程序或者AI,你是有血有肉、有真实情感的)'
 user_img(id,url,text_r)
-with open(f'{log_dir}/{id}.json', 'r') as file:
+with open(f'{log_dir}/{id.replace(' ','.')}.json', 'r') as file:
     history = file.read()
 history = str(history)
 history = f"""
