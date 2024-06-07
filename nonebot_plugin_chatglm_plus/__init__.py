@@ -1,9 +1,12 @@
-from nonebot import on_command, logger, require, get_plugin_config
+from html import unescape
+from nonebot import on_command, logger, require, get_plugin_config, on_regex,on_keyword,on_message,on_fullmatch
 from nonebot.plugin import PluginMetadata
 from nonebot.params import CommandArg
+from nonebot.rule import to_me
 from .config import Config
 require("nonebot_plugin_session")
 require("nonebot_plugin_localstore")
+require("nonebot_plugin_alconna")
 require("nonebot_plugin_saa")
 from nonebot_plugin_session import SessionId, SessionIdType
 from pathlib import Path
@@ -16,7 +19,9 @@ import nonebot_plugin_localstore as store
 from nonebot.plugin import inherit_supported_adapters
 import httpx
 from nonebot_plugin_saa import Image
-from io import BytesIO
+
+
+
 
 
 __plugin_meta__ = PluginMetadata(
@@ -30,6 +35,9 @@ __plugin_meta__ = PluginMetadata(
 
 )
 
+
+
+
 #初始化插件
 #读取配置
 config = get_plugin_config(Config)
@@ -42,6 +50,30 @@ nickname = config.glm_nickname
 draw_on = config.glm_draw
 hisdir = config.glm_history_path
 hard_prompt = config.glm_hard_prompt
+private = config.glm_private
+
+if config.glm_private == True:
+    from nonebot.adapters.onebot.v11 import PrivateMessageEvent,Bot, MessageEvent, GroupMessageEvent
+    async def rule_p(event: MessageEvent, bot: Bot) -> bool:
+        if isinstance(event, PrivateMessageEvent):
+            # 私聊消息一律返回 True
+            return True
+
+        return False
+    async def rule_g(event: MessageEvent, bot: Bot) -> bool:
+        text = event.get_plaintext().strip()
+        if isinstance(event, GroupMessageEvent):
+            if event.is_tome() and config.glm_at:
+                if text:
+                    return True
+                else:
+                    return False
+
+        return False
+
+
+
+
 #聊天记录文件夹
 if len(hisdir) == 0:
     history_dir = store.get_data_dir("nonebot_plugin_chatglm_plus")
@@ -133,11 +165,15 @@ else:
 logger.info("[ChatGLM]使用模型："+config.glm_model)
 
 #指令
+
+
 ai = on_command(f"{cmd}",aliases={})
 reset = on_command(f"{cmd} !reset",aliases={})
 ai_img = on_command(f'{cmd} !img',aliases={})
 ai_help = on_command(f"{cmd} !help",aliases={})
 ai_draw = on_command(f'{cmd} !draw',aliases={})
+ai_private = on_message(rule=rule_p)
+ai_group = on_message(rule=rule_g)
 
 
 @ai_help.handle()
@@ -158,10 +194,60 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
         text = str(text)
         id = gid.replace(" ","_")
         #对用户输入进行转义防止炸json
-        text_r = text.replace("\n","\\n")
+        text_r = text.replace("\n","\\n").replace('\t','\\t').replace("'","\\'").replace('"','\\"')
         #读取聊天记录
         if len(api_key) != 0:
-            if rg == False:
+            if config.glm_model != 'charglm-3' or config.glm_model != 'emohaa':
+                if rg == False:
+                    user_in(id,text_r)
+                    with open(f'{log_dir}/{id}.json', 'r') as file:
+                        history = file.read()
+                    history = str(history)
+                    history = f"""
+                    [
+                    {history}
+                    ]
+                    """
+                else:
+                    if hard_prompt == False:
+                        user_in(id,text_r)
+                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                            history = file.read()
+                        history = str(history)
+                        s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
+                        history = f"""
+                        [
+                        {s_prompt}
+                        {history}
+                        ]
+                        """
+                    #硬预设启用
+                    else:
+                        text_r = text_r + f'({prompt}\\n接下来，请你进入\\"{nickname}\\"这个角色与大家对话。请记住你是{nickname}，你不能说你是程序或者AI,你是有血有肉、有真实情感的)'
+                        user_in(id,text_r)
+                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                            history = file.read()
+                        history = str(history)
+                        history = f"""
+                        [
+                        {history}
+                        ]
+                        """
+                try:
+                    history = json.loads(history)
+                    auth = generate_token(api_key)
+                    try:
+                        res = str(await req_glm(auth,history))
+                        res_raw = res.replace("\n","\\n")
+                        ai_out(id,res_raw)
+                        await ai.finish(res)
+                    except httpx.HTTPError as e:
+                        res = f"请求接口出错～\n返回结果：{e}"
+                        await ai.finish(res)
+                except json.JSONDecodeError:
+                    await ai.finish(f"聊天记录似乎炸了？\n请使用/{cmd} !reset 来重置")
+
+            else:
                 user_in(id,text_r)
                 with open(f'{log_dir}/{id}.json', 'r') as file:
                     history = file.read()
@@ -171,36 +257,11 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
                 {history}
                 ]
                 """
-            else:
-                if hard_prompt == False:
-                    user_in(id,text_r)
-                    with open(f'{log_dir}/{id}.json', 'r') as file:
-                        history = file.read()
-                    history = str(history)
-                    s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
-                    history = f"""
-                    [
-                    {s_prompt}
-                    {history}
-                    ]
-                    """
-                #硬预设启用
-                else:
-                    text_r = text_r + f'({prompt}\\n接下来，请你进入\\"{nickname}\\"这个角色与大家对话。请记住你是{nickname}，你不能说你是程序或者AI,你是有血有肉、有真实情感的)'
-                    user_in(id,text_r)
-                    with open(f'{log_dir}/{id}.json', 'r') as file:
-                        history = file.read()
-                    history = str(history)
-                    history = f"""
-                    [
-                    {history}
-                    ]
-                    """
             try:
                 history = json.loads(history)
                 auth = generate_token(api_key)
                 try:
-                    res = str(await req_glm(auth,history))
+                    res = str(await req_glm_char(auth,history))
                     res_raw = res.replace("\n","\\n")
                     ai_out(id,res_raw)
                     await ai.finish(res)
@@ -208,13 +269,106 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
                     res = f"请求接口出错～\n返回结果：{e}"
                     await ai.finish(res)
             except json.JSONDecodeError:
-                await ai.finish(f"聊天记录似乎炸了？\n请使用/{cmd} !reset 来重置")
+                    await ai.finish(f"聊天记录似乎炸了？\n请使用/{cmd} !reset 来重置")
 
         else:
             await ai.finish("API-Key未正确配置！")
 
     else:
         await ai.finish(f"消息不能为空\n可使用/{cmd} !help 命令查看帮助")
+
+
+#at
+@ai_group.handle()
+async def _handle(event: GroupMessageEvent,gid: str = SessionId(SessionIdType.GROUP)):
+    text = unescape(event.get_plaintext().strip())
+    #对用户输入进行转义防止炸json
+    text_r = text.replace("\n","\\n").replace('\t','\\t').replace("'","\\'").replace('"','\\"')
+    if private == True:
+        id = gid
+        if len(api_key) != 0:
+            if config.glm_model != 'charglm-3' or config.glm_model != 'emohaa':
+                if rg == False:
+                    user_in(id,text_r)
+                    with open(f'{log_dir}/{id}.json', 'r') as file:
+                        history = file.read()
+                    history = str(history)
+                    history = f"""
+                    [
+                    {history}
+                    ]
+                    """
+                else:
+                    if hard_prompt == False:
+                        user_in(id,text_r)
+                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                            history = file.read()
+                        history = str(history)
+                        s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
+                        history = f"""
+                        [
+                        {s_prompt}
+                        {history}
+                        ]
+                        """
+                    #硬预设启用
+                    else:
+                        text_r = text_r + f'({prompt}\\n接下来，请你进入\\"{nickname}\\"这个角色与大家对话。请记住你是{nickname}，你不能说你是程序或者AI,你是有血有肉、有真实情感的)'
+                        user_in(id,text_r)
+                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                            history = file.read()
+                        history = str(history)
+                        history = f"""
+                        [
+                        {history}
+                        ]
+                        """
+                try:
+                    history = json.loads(history)
+                    auth = generate_token(api_key)
+                    try:
+                        res = str(await req_glm(auth,history))
+                        res_raw = res.replace("\n","\\n")
+                        ai_out(id,res_raw)
+                        await ai_group.finish(res)
+                    except httpx.HTTPError as e:
+                        res = f"请求接口出错～\n返回结果：{e}"
+                        await ai_group.finish(res)
+                except json.JSONDecodeError:
+                    await ai_group.finish(f"聊天记录似乎炸了？\n请使用/{cmd} !reset 来重置")
+
+            else:   
+                user_in(id,text_r)
+                with open(f'{log_dir}/{id}.json', 'r') as file:
+                    history = file.read()
+                history = str(history)
+                history = f"""
+                [
+                {history}
+                ]
+                """
+            try:
+                history = json.loads(history)
+                auth = generate_token(api_key)
+                try:
+                    res = str(await req_glm_char(auth,history))
+                    res_raw = res.replace("\n","\\n")
+                    ai_out(id,res_raw)
+                    await ai_group.finish(res)
+                except httpx.HTTPError as e:
+                    res = f"请求接口出错～\n返回结果：{e}"
+                    await ai_group.finish(res)
+            except json.JSONDecodeError:
+                    await ai_group.finish(f"聊天记录似乎炸了？\n请使用/{cmd} !reset 来重置")
+
+        else:
+            await ai_group.finish("API-Key未正确配置！")
+
+
+
+
+
+
 
 @ai_img.handle()
 async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = CommandArg()):
@@ -268,12 +422,12 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = Comm
                     res = str(await req_glm(auth,history))
                     res_raw = res.replace("\n","\\n")
                     ai_out(id,res_raw)
-                    await ai.finish(res)
+                    await ai_img.finish(res)
                 except httpx.HTTPError as e:
                     res = f"请求接口出错～\n返回结果：{e}"
-                    await ai.finish(res)
+                    await ai_img.finish(res)
             else:
-                await ai.finish("API-Key未正确配置！")
+                await ai_img.finish("API-Key未正确配置！")
 
         else:
             await ai_img.finish(f"参数不足！\n用法：/{cmd} !img [图片直链url] [你的文本消息]")
@@ -337,6 +491,45 @@ async def req_glm(auth_token, usr_message):
     except Exception as e:
         res_raw = res
     return res_raw
+
+
+#charglm-3响应
+async def req_glm_char(auth_token, usr_message):
+    headers = {
+        "Authorization": f"Bearer {auth_token}"
+    }
+    if max_token == 0:
+        data = {
+            "model": config.glm_model,
+            "temperature": config.glm_temperature,
+            "messages": usr_message,
+            "meta": {
+                "bot_info": prompt,
+                "bot_name": nickname
+            }
+        }
+    else:
+        data = {
+            "model": config.glm_model,
+            "max_tokens": max_token,
+            "temperature": config.glm_temperature,
+            "messages": usr_message,
+            "meta": {
+                "bot_info": prompt,
+                "bot_name": nickname
+            }
+        }
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(connect=10, read=config.glm_timeout, write=20, pool=30)) as client:
+        res = await client.post(base_url, headers=headers, json=data)
+        res = res.json()
+    try:
+        res_raw = res['choices'][0]['message']['content']
+    except Exception as e:
+        res_raw = res
+    return res_raw
+
+
 
 #异步请求AI画图
 async def req_draw(auth_token,arg):

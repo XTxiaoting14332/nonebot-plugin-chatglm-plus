@@ -118,6 +118,15 @@ glm_nickname = ""
 
 #是否启用ai画图功能，默认为False
 glm_draw = False
+
+
+#是否启用私聊，默认为False(该功能目前仅支持Onebot V11适配器)
+glm_private: bool = False
+
+#是否通过at机器人触发聊天，默认为False(该功能目前仅支持Onebot V11适配器)
+glm_at: bool = False
+
+
 ```
 
 #### 关于硬预设(hard_prompt)

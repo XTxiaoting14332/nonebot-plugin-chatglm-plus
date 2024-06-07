@@ -14,7 +14,7 @@ class Config(BaseModel):
     glm_max_tokens: int = 0
 
     #使用的模型，默认为glm-3-turbo
-    #目前该插件支持的模型有：glm-4、glm-4v、glm-3-turbo
+    #目前该插件支持的模型有：glm-4、glm-4v、glm-3-turbo、charglm-3、emohaa
     glm_model: str = "glm-3-turbo"
 
     #接口地址，一般无需设置，默认为https://open.bigmodel.cn/api/paas/v4/chat/completions
@@ -38,4 +38,8 @@ class Config(BaseModel):
     #是否启用ai画图功能，默认为False
     glm_draw: bool = False
 
+    #是否启用私聊，默认为False(该功能目前仅支持Onebot V11适配器)
+    glm_private: bool = False
 
+    #是否通过at触发聊天，默认为False(该功能目前仅支持Onebot V11适配器)
+    glm_at: bool = False
