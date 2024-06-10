@@ -278,14 +278,106 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
         await ai.finish(f"消息不能为空\n可使用/{cmd} !help 命令查看帮助")
 
 
+
+@ai_private.handle()
+async def _handle(event: PrivateMessageEvent,id: str = SessionId(SessionIdType.GROUP)):
+    if private == True:
+        text = unescape(event.get_plaintext().strip())
+        id = id.replace(" ","_")
+        #对用户输入进行转义防止炸json
+        text_r = text.replace("\n","\\n").replace('\t','\\t').replace("'","\\'").replace('"','\\"')
+        #读取聊天记录
+        if len(api_key) != 0:
+            if config.glm_model != 'charglm-3' or config.glm_model != 'emohaa':
+                if rg == False:
+                    user_in(id,text_r)
+                    with open(f'{log_dir}/{id}.json', 'r') as file:
+                        history = file.read()
+                    history = str(history)
+                    history = f"""
+                    [
+                    {history}
+                    ]
+                    """
+                else:
+                    if hard_prompt == False:
+                        user_in(id,text_r)
+                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                            history = file.read()
+                        history = str(history)
+                        s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
+                        history = f"""
+                        [
+                        {s_prompt}
+                        {history}
+                        ]
+                        """
+                    #硬预设启用
+                    else:
+                        text_r = text_r + f'({prompt}\\n接下来，请你进入\\"{nickname}\\"这个角色与大家对话。请记住你是{nickname}，你不能说你是程序或者AI,你是有血有肉、有真实情感的)'
+                        user_in(id,text_r)
+                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                            history = file.read()
+                        history = str(history)
+                        history = f"""
+                        [
+                        {history}
+                        ]
+                        """
+                try:
+                    history = json.loads(history)
+                    auth = generate_token(api_key)
+                    try:
+                        res = str(await req_glm(auth,history))
+                        res_raw = res.replace("\n","\\n")
+                        ai_out(id,res_raw)
+                        await ai_private.finish(res)
+                    except httpx.HTTPError as e:
+                        res = f"请求接口出错～\n返回结果：{e}"
+                        await ai_private.finish(res)
+                except json.JSONDecodeError:
+                    await ai_private.finish(f"聊天记录似乎炸了？\n请使用/{cmd} !reset 来重置")
+
+            else:
+                user_in(id,text_r)
+                with open(f'{log_dir}/{id}.json', 'r') as file:
+                    history = file.read()
+                history = str(history)
+                history = f"""
+                [
+                {history}
+                ]
+                """
+            try:
+                history = json.loads(history)
+                auth = generate_token(api_key)
+                try:
+                    res = str(await req_glm_char(auth,history))
+                    res_raw = res.replace("\n","\\n")
+                    ai_out(id,res_raw)
+                    await ai.finish(res)
+                except httpx.HTTPError as e:
+                    res = f"请求接口出错～\n返回结果：{e}"
+                    await ai_private.finish(res)
+            except json.JSONDecodeError:
+                    await ai_private.finish(f"聊天记录似乎炸了？\n请使用/{cmd} !reset 来重置")
+
+        else:
+            await ai_private.finish("API-Key未正确配置！")
+
+
+
+
+
+
 #at
 @ai_group.handle()
 async def _handle(event: GroupMessageEvent,gid: str = SessionId(SessionIdType.GROUP)):
     text = unescape(event.get_plaintext().strip())
     #对用户输入进行转义防止炸json
     text_r = text.replace("\n","\\n").replace('\t','\\t').replace("'","\\'").replace('"','\\"')
-    if private == True:
-        id = gid
+    if config.glm_at == True:
+        id = gid.replace(" ","_")
         if len(api_key) != 0:
             if config.glm_model != 'charglm-3' or config.glm_model != 'emohaa':
                 if rg == False:
@@ -456,7 +548,7 @@ async def _handle(arg: Message = CommandArg()):
 async def _handle(gid: str = SessionId(SessionIdType.GROUP)):
     id = gid.replace(" ","_")
     try:
-        os.remove(f"{log_dir}/{id.replace(' ','.')}.json")
+        os.remove(f"{log_dir}/{id}.json")
         await reset.finish("已清除聊天记录")
     except FileNotFoundError:
         await reset.finish("当前还没有会话哦！")
