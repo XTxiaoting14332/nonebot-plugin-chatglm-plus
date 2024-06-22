@@ -99,29 +99,29 @@ prompt = prompt.replace('"','\\"')
 #用户输入
 def user_in(id, text):
     if os.path.exists(f"{log_dir}/{id}.json"):
-        with open(f'{log_dir}/{id}.json', 'a', encoding='utf-8') as file:
+        with open(f'{log_dir}/{id}.json', 'a', encoding='utf-8', errors='ignore') as file:
             file.write(',\n{"role": "user", "content": "' + text + '"}')
     else:
-        with open(f'{log_dir}/{id}.json', 'w', encoding='utf-8') as file:
+        with open(f'{log_dir}/{id}.json', 'w', encoding='utf-8', errors='ignore') as file:
             file.write('{"role": "user", "content": "' + text + '"}')
 
 #AI输出
 def ai_out(id, text):
-    if os.path.exists(f"{log_dir}/{id}.json", encoding='utf-8'):
-        with open(f'{log_dir}/{id}.json', 'a') as file:
+    if os.path.exists(f"{log_dir}/{id}.json"):
+        with open(f'{log_dir}/{id}.json', 'a', encoding='utf-8', errors='ignore') as file:
             file.write(',\n{"role": "assistant", "content": "' + text + '"}')
     else:
-        with open(f'{log_dir}/{id}.json', 'w', encoding='utf-8') as file:
+        with open(f'{log_dir}/{id}.json', 'w', encoding='utf-8', errors='ignore') as file:
             file.write('{"role": "assistant", "content": "' + text + '"}')
 
 
 #用户识别图片（仅GLM-4V可用）
 def user_img(id,url,text):
     if os.path.exists(f"{log_dir}/{id}.json"):
-        with open(f'{log_dir}/{id}.json', 'a', encoding='utf-8') as file:
+        with open(f'{log_dir}/{id}.json', 'a', encoding='utf-8', errors='ignore') as file:
             file.write(',\n{"role": "user","content": [{"type": "text","text": "'+text+'"},{"type": "image_url","image_url": {"url" : "'+url+'"} }]}')
     else:
-        with open(f'{log_dir}/{id}.json', 'w', encoding='utf-8') as file:
+        with open(f'{log_dir}/{id}.json', 'w', encoding='utf-8', errors='ignore') as file:
             file.write(',\n{"role": "user","content": [{"type": "text","text": "'+text+'"},{"type": "image_url","image_url": {"url" : "'+url+'"} }]}')
 
 
@@ -204,7 +204,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
             if config.glm_model != 'charglm-3' or config.glm_model != 'emohaa':
                 if rg == False:
                     user_in(id,text_r)
-                    with open(f'{log_dir}/{id}.json', 'r') as file:
+                    with open(f'{log_dir}/{id}.json', 'r' ,encoding='utf-8', errors='ignore') as file:
                         history = file.read()
                     history = str(history)
                     history = f"""
@@ -215,7 +215,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
                 else:
                     if hard_prompt == False:
                         user_in(id,text_r)
-                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                        with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                             history = file.read()
                         history = str(history)
                         s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
@@ -229,7 +229,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
                     else:
                         text_r = text_r + f'({prompt}\\n接下来，请你进入\\"{nickname}\\"这个角色与大家对话。请记住你是{nickname}，你不能说你是程序或者AI,你是有血有肉、有真实情感的)'
                         user_in(id,text_r)
-                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                        with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                             history = file.read()
                         history = str(history)
                         history = f"""
@@ -253,7 +253,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),text: Message = Comm
 
             else:
                 user_in(id,text_r)
-                with open(f'{log_dir}/{id}.json', 'r') as file:
+                with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                     history = file.read()
                 history = str(history)
                 history = f"""
@@ -295,7 +295,7 @@ if config.glm_private == True:
                 if config.glm_model != 'charglm-3' or config.glm_model != 'emohaa':
                     if rg == False:
                         user_in(id,text_r)
-                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                        with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                             history = file.read()
                         history = str(history)
                         history = f"""
@@ -306,7 +306,7 @@ if config.glm_private == True:
                     else:
                         if hard_prompt == False:
                             user_in(id,text_r)
-                            with open(f'{log_dir}/{id}.json', 'r') as file:
+                            with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                                 history = file.read()
                             history = str(history)
                             s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
@@ -320,7 +320,7 @@ if config.glm_private == True:
                         else:
                             text_r = text_r + f'({prompt}\\n接下来，请你进入\\"{nickname}\\"这个角色与大家对话。请记住你是{nickname}，你不能说你是程序或者AI,你是有血有肉、有真实情感的)'
                             user_in(id,text_r)
-                            with open(f'{log_dir}/{id}.json', 'r') as file:
+                            with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                                 history = file.read()
                             history = str(history)
                             history = f"""
@@ -344,7 +344,7 @@ if config.glm_private == True:
 
                 else:
                     user_in(id,text_r)
-                    with open(f'{log_dir}/{id}.json', 'r') as file:
+                    with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                         history = file.read()
                     history = str(history)
                     history = f"""
@@ -387,7 +387,7 @@ if config.glm_at == True:
                 if config.glm_model != 'charglm-3' or config.glm_model != 'emohaa':
                     if rg == False:
                         user_in(id,text_r)
-                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                        with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                             history = file.read()
                         history = str(history)
                         history = f"""
@@ -398,7 +398,7 @@ if config.glm_at == True:
                     else:
                         if hard_prompt == False:
                             user_in(id,text_r)
-                            with open(f'{log_dir}/{id}.json', 'r') as file:
+                            with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                                 history = file.read()
                             history = str(history)
                             s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
@@ -412,7 +412,7 @@ if config.glm_at == True:
                         else:
                             text_r = text_r + f'({prompt}\\n接下来，请你进入\\"{nickname}\\"这个角色与大家对话。请记住你是{nickname}，你不能说你是程序或者AI,你是有血有肉、有真实情感的)'
                             user_in(id,text_r)
-                            with open(f'{log_dir}/{id}.json', 'r') as file:
+                            with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                                 history = file.read()
                             history = str(history)
                             history = f"""
@@ -436,7 +436,7 @@ if config.glm_at == True:
 
                 else:   
                     user_in(id,text_r)
-                    with open(f'{log_dir}/{id}.json', 'r') as file:
+                    with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                         history = file.read()
                     history = str(history)
                     history = f"""
@@ -481,7 +481,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = Comm
             if len(api_key) != 0:
                 if rg == False:
                     user_img(id,url,text_r)
-                    with open(f'{log_dir}/{id}.json', 'r') as file:
+                    with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                         history = file.read()
                     history = str(history)
                     history = f"""
@@ -492,7 +492,7 @@ async def _handle(gid: str = SessionId(SessionIdType.GROUP),args: Message = Comm
                 else:
                     if hard_prompt == False:
                         user_img(id,url,text_r)
-                        with open(f'{log_dir}/{id}.json', 'r') as file:
+                        with open(f'{log_dir}/{id}.json', 'r', encoding='utf-8', errors='ignore') as file:
                             history = file.read()
                         history = str(history)
                         s_prompt = '{"role": "system", "content": "'+prompt+'\\n接下来，请你进入\\"'+nickname+'\\"这个角色与大家对话。请记住你是'+nickname+'，你不能说你是程序或者AI,你是有血有肉、有真实情感的"},'
