@@ -108,7 +108,7 @@ def user_in(id, text):
 #AI输出
 def ai_out(id, text):
     if os.path.exists(f"{log_dir}/{id}.json"):
-        with open(f'{log_dir}/{id}.json', 'a', encoding='utf-8', errors='ignore') as file:
+        with open(f'{log_dir}/{id}.json', 'a', ) as file:
             file.write(',\n{"role": "assistant", "content": "' + text + '"}')
     else:
         with open(f'{log_dir}/{id}.json', 'w', encoding='utf-8', errors='ignore') as file:
