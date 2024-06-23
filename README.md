@@ -39,7 +39,7 @@ _✨ 人性化的ChatGLM插件，使用智谱API✨_<br>
 ``DoDo``<br>
 
 ## 🥵 环境要求
-Python >=3.8<br>
+Python >=3.10<br>
 Nonebot >=2.2.0<br>
 <br>
 ## 💿 安装
