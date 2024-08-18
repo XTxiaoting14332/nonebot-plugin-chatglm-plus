@@ -6,7 +6,6 @@ from nonebot.rule import to_me
 from .config import Config
 require("nonebot_plugin_session")
 require("nonebot_plugin_localstore")
-require("nonebot_plugin_alconna")
 require("nonebot_plugin_saa")
 from nonebot_plugin_session import SessionId, SessionIdType
 from pathlib import Path
@@ -60,6 +59,9 @@ if config.glm_private == True:
             return True
 
         return False
+
+if config.glm_at == True:
+    from nonebot.adapters.onebot.v11 import GroupMessageEvent,Bot, MessageEvent
     async def rule_g(event: MessageEvent, bot: Bot) -> bool:
         text = event.get_plaintext().strip()
         if isinstance(event, GroupMessageEvent):
