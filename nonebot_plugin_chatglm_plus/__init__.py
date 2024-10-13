@@ -637,8 +637,9 @@ async def req_draw(auth_token,arg):
         "Authorization": f"Bearer {auth_token}"
     }
     data = {
-    "model": "cogview-3",
-    "prompt": arg
+    "model": "cogview-3-plus",
+    "prompt": arg,
+    "size": "1344x768"
     }
     async with httpx.AsyncClient(timeout=httpx.Timeout(connect=10, read=config.glm_timeout, write=20, pool=30)) as client:
         res = await client.post(draw_url, headers=headers, json=data)
